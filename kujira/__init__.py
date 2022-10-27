@@ -1,10 +1,35 @@
 import requests
 import json
-
+import asyncio
+import time 
+import aiohttp
+from aiohttp.client import ClientSession
+from datetime import datetime
 
 ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED" 
 
 
+class TimeSeries:
+    def __init__(self, serie_name,  maxnum):
+        """
+        Store at most maxnum values. Only add value if it is different then previous one
+        """
+        self.name = serie_name
+        self.values = {}
+
+    def add_value(self, dateval, value):
+        if len(self.values.keys()) > 0:
+            lastval = self.values[-1]
+            if value != lastval:
+                self.values[dateval] = value
+        else:
+            self.values[dateval] = value
+                
+    def latest(self):
+        lastkey = sorted(self.values.keys()) [-1]
+        return self.values[lastkey]
+
+    
 class Commission:
     def __init__(self, jsonstr):
         """
@@ -86,10 +111,15 @@ class Validator:
         self.unbonding_height = jsonstr["unbonding_height"]
         self.unbonding_time = jsonstr["unbonding_time"]
         self.description = Description(jsonstr["description"]) 
-
+        self.missing_blocks = TimeSeries("Missing Blocks", 120)
+        
+        
     def __str__(self):
         return f"{self.description.moniker} {self.operator_address}"
 
+    def add_missing_block_value(self, value):
+        self.missing_blocks.add_value(datetime.now(), value)
+                                
 class Kujira:
     """
     Class for Kujira Node
@@ -108,7 +138,6 @@ class Kujira:
         response = requests.get(f"{self.server}{ENDPOINT}")
         temp = json.loads(response.text)
         for validator in temp["validators"]:
-            print("<<", validator)
             temp_validator = Validator(validator)
             if temp_validator.operator_address not in self.validators.keys():
                 self.validators[temp_validator.operator_address] = temp_validator
@@ -116,3 +145,52 @@ class Kujira:
     def list_validators(self):
         for validator in self.validators.values():
             print(validator)
+
+    def list_missing(self):
+        for validator in self.validators.values():
+            print(validator.operator_address, validator.missing_blocks.latest())
+            
+    def get_missing_block_numbers(self):
+        SOURCE = self.server
+
+
+        """
+        async not worked
+
+
+        async def download_link(url:str, session:ClientSession):
+            addr = url.split("/")[-2]
+            print(addr)
+            async with session.get(url) as response:
+                result = await response.text()
+                r = json.loads(result)
+                missing = int(r["miss_counter"])
+                self.validators[addr].add_missing_block_value(missing)
+
+        async def download_all(urls:list):
+            my_conn = aiohttp.TCPConnector(limit=10)
+            async with aiohttp.ClientSession(connector=my_conn) as session:
+                tasks = []
+                for url in urls:
+                    task = asyncio.ensure_future(download_link(url=url, session=session))
+                    tasks.append(task)
+                await asyncio.gather(*tasks,return_exceptions=True) # the await must be nest inside of the session
+                
+        temp = []
+        
+        for address in self.validators.keys():
+            temp.append(f"{SOURCE}/oracle/validators/{address}/miss")
+            
+        asyncio.run(download_all(temp))
+        """
+        
+        for address in self.validators.keys():
+            print(address)
+            result = json.loads(requests.get(f"{SOURCE}/oracle/validators/{address}/miss").text)
+            missing = int(result["miss_counter"])
+            self.validators[address].add_missing_block_value(missing)
+            
+            
+        
+    
+
