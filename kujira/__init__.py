@@ -5,6 +5,8 @@ import time
 import aiohttp
 from aiohttp.client import ClientSession
 from datetime import datetime
+from threading import Thread
+import threading
 
 ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED" 
 
@@ -13,6 +15,8 @@ class TimeSeries:
     def __init__(self, serie_name,  maxnum):
         """
         Store at most maxnum values. Only add value if it is different then previous one
+
+        TODO: add earliest value deletion if number of values is larger then maxnum
         """
         self.name = serie_name
         self.values = {}
@@ -26,9 +30,11 @@ class TimeSeries:
             self.values[dateval] = value
                 
     def latest(self):
-        lastkey = sorted(self.values.keys()) [-1]
-        return self.values[lastkey]
-
+        try:
+            lastkey = sorted(self.values.keys()) [-1]
+            return self.values[lastkey]
+        except:
+            return 0
     
 class Commission:
     def __init__(self, jsonstr):
@@ -119,7 +125,8 @@ class Validator:
 
     def add_missing_block_value(self, value):
         self.missing_blocks.add_value(datetime.now(), value)
-                                
+
+
 class Kujira:
     """
     Class for Kujira Node
@@ -183,13 +190,20 @@ class Kujira:
             
         asyncio.run(download_all(temp))
         """
-        
-        for address in self.validators.keys():
-            print(address)
+        def worker(address):
             result = json.loads(requests.get(f"{SOURCE}/oracle/validators/{address}/miss").text)
             missing = int(result["miss_counter"])
             self.validators[address].add_missing_block_value(missing)
+
+        
+        for address in self.validators.keys():
+            t = Thread(target=worker, args=(address,))
+            t.start()
             
+        main_thread = threading.currentThread()
+        for t in threading.enumerate():
+            if t is not main_thread:
+                t.join()
             
         
     
