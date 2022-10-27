@@ -5,4 +5,4 @@ SERVER = "https://lcd.kaiyo.kujira.setten.io"
 
 mykujira = Kujira(SERVER)
 
-pprint(mykujira.get_validators())
+mykujira.list_validators()
