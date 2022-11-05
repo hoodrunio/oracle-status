@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from threading import Thread
 import threading
+import traceback as tb
 
 ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED"
 
@@ -45,7 +46,7 @@ class TimeSeries:
             return self.values[lastkey]
         except KeyError:
             return 0
-
+        
 
 class Commission:
     def __init__(self, jsonstr):
@@ -107,6 +108,7 @@ class Kujira:
     """
     def __init__(self, server):
         self.server = server
+        self.active = True
         self.validators = {}
         self.get_validators()
 
@@ -114,14 +116,18 @@ class Kujira:
         """
         Get details of all validators
         """
-        response = requests.get(f"{self.server}{ENDPOINT}")
-        temp = json.loads(response.text)
-        for validator in temp["validators"]:
-            temp_validator = Validator(validator)
-            temp_addr = temp_validator.operator_address
-            if temp_addr not in self.validators.keys():
-                self.validators[temp_addr] = temp_validator
-
+        try:
+            response = requests.get(f"{self.server}{ENDPOINT}")
+            temp = json.loads(response.text)
+            for validator in temp["validators"]:
+                temp_validator = Validator(validator)
+                temp_addr = temp_validator.operator_address
+                if temp_addr not in self.validators.keys():
+                    self.validators[temp_addr] = temp_validator
+            self.active = True
+        except:
+            self.active = False
+            
     def list_validators(self):
         for validator in self.validators.values():
             print(validator)
@@ -132,7 +138,6 @@ class Kujira:
                   validator.missing_blocks.latest())
 
     def get_missing_block_numbers(self):
-
         SOURCE = self.server
 
         def worker(address):
@@ -151,3 +156,73 @@ class Kujira:
         for t in threading.enumerate():
             if t is not main_thread:
                 t.join()
+
+class KujiraPool:
+    """
+    Pool of kujira nodes.
+    """
+    def __init__(self):
+        self.nodes = {}
+        self.selected = None
+                
+    def add_nodes_from_file(self, filename):
+        nodenames = open(filename, "r").readlines()
+        
+        
+    def add_node(self, node_url):
+        firstnode = False
+        if self.selected == None:
+            firstnode = True
+            
+        if node_url not in self.nodes.keys():
+            newnode = Kujira(node_url)
+            self.nodes[node_url] = newnode
+
+        if firstnode is True:
+            self.selected = self.nodes[node_url]
+            self.selected.get_validators()
+        
+
+    def get_missing_block_numbers(self):
+        #TODO: check servers in intervals for their health.
+        if self.selected.active:
+            self.selected.get_missing_block_numbers()            
+        else:
+            active_found = False
+            for node in self.nodes.values():
+                if node.active is True:
+                    self.selected = node
+                    active_found = True
+                    break
+            if active_found == False:
+                for node in self.nodes.values():
+                    node.get_validators()
+                    if node.active is True:
+                        self.selected = node
+                        break
+            self.selected.get_missing_block_numbers()
+
+            
+class MissingRecord:
+    def __init__(self, moniker, addr, alarmcount):
+        self.moniker = moniker
+        self.address = addr
+        self.alarmcount = alarmcount
+        self.firstnumber = None
+        self.lasttime = None
+
+    def update(self, missing):
+        if self.firstnumber is None:
+            self.firstnumber = missing
+        else:
+            if missing - self.firstnumber > self.alarmcount:
+                self.firstnumber = missing
+                return "ALARM"
+            else:
+                return None
+
+
+class Validators:
+    def __init__(self):
+        self.validators = {}
+        pass    

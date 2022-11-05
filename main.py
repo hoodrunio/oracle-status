@@ -1,8 +1,15 @@
-from kujira import Kujira
+from kujira import Kujira, KujiraPool
 
-SERVER = "https://lcd.kaiyo.kujira.setten.io"
+from config import *
 
-mykujira = Kujira(SERVER)
+pool = KujiraPool()
 
-mykujira.get_missing_block_numbers()
-mykujira.list_missing()
+for node_url in SERVERS:
+    pool.add_node(node_url)
+
+print(pool.selected.server)
+pool.get_missing_block_numbers()
+
+
+pool.selected.list_missing()
+print(pool.selected.server)
