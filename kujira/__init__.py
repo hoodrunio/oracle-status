@@ -19,10 +19,9 @@ class Validators:
     def get_validator(self, address):
         return session.query(User).filter_by(address=address).first()
 
-    def add_validator(self, discordname, address, moniker, alarm_threshold):
+    def add_validator(self, address, moniker, alarm_threshold):
         try:
-            user = User(discordname=discordname,
-                        address=address,
+            user = User(address=address,
                         moniker=moniker,
                         alarm_threshold=alarm_threshold)
             session.add(user)
@@ -110,7 +109,7 @@ class KujiraPool:
         if temp is None:
             state, validator = self.selected.validator(address)
             if state is True:
-                self.validators.add_validator(discord_name, address, validator.moniker, threshold)
+                self.validators.add_validator(address, validator.moniker, threshold)
                 msg = f"Validator alarm for address {address} and moniker {validator.moniker} set with threshold {threshold} to user {discord_name}"
             else:
                 msg = f"Couldn't find validator record for address {address}"
