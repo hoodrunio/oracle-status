@@ -1,8 +1,26 @@
-from kujira import Kujira
+from kujira import Kujira, KujiraPool, session, User, Missing, initialize
 
-SERVER = "https://lcd.kaiyo.kujira.setten.io"
+from config import *
 
-mykujira = Kujira(SERVER)
+initialize()
+pool = KujiraPool()
 
-mykujira.get_missing_block_numbers()
-mykujira.list_missing()
+for node_url in SERVERS:
+    pool.add_node(node_url)
+
+
+# pool.get_missing_block_numbers()
+
+#pool.update_selected()
+#pool.add_validator("discord1", "kujiravaloper1qvq39e9mjaqner30swwrq6vf59huyxetrqagjy", 10)
+
+"""
+
+#initialize()
+
+k = Kujira("https://lcd.kaiyo.kujira.setten.io")
+k.check()
+validators = Validators()
+
+validators.add_validator("ilkermanap#7075", "denemeaddres", "denememoniker", 20)
+"""
