@@ -25,7 +25,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 HELPMSG = """
 Commands
-!addr  validator_address threshold : signup for missing block check for given validator address
+!addr  validator_address threshold list of users : signup for missing block check for given validator address
+     !addr kujiravaloper1ujhlm5qxyt2hn5fxq8wll805tsxcamqfhsty9a  120  user1 user2 user3 user4
+!adduser 
 """
 
 
@@ -50,8 +52,36 @@ async def on_message(message):
 
 
 @bot.command(name="addr")
-async def save_address(ctx, address, threshold):
+async def save_address(ctx, address, threshold, *args):
     msg = pool.add_validator(ctx.author.name, address, threshold)
+    validator = pool.validators.get_validator(address)
+    for user in args:
+        state = validator.add_notify(user)
+        if state is False:
+            msg += f"User name {user} is already in the list for {address}, not adding\n"
+    msg += f"Current list of users to notify for {address}:\n"
+    msg += validator.notify_list()
+    await ctx.send(msg)
+
+
+@bot.command(name="adduser")
+async def add_notify_user(ctx, address, *args):
+    validator = pool.validators.get_validator(address)
+    msg = ""
+    for user in args:
+        state = validator.add_notify(user)
+        if state is False:
+            msg += f"User name {user} is already in the list for {address}, not adding\n"
+    msg += f"Current list of users to notify for {address}:\n"
+    msg += validator.notify_list()
+    await ctx.send(msg)
+
+
+@bot.command(name="detail")
+async def save_address(ctx, address):
+    validator = pool.validators.get_validator(address)
+    msg = f"Moniker : {validator.moniker}, Address : {validator.address}\nNotification list: \n"
+    msg += validator.notify_list()
     await ctx.send(msg)
 
 
