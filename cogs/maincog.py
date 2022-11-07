@@ -95,8 +95,11 @@ class MainCog(commands.Cog):
     async def check_alarms(self):
         print("in loop", datetime.now())
         channel = self.bot.get_channel(channelid)
-
-        await channel.send("testing loop " + str(datetime.now()))
+        from random import choice
+        state = choice([True, False])
+        print(state)
+        if state:
+            await channel.send(str(state)+ " testing loop " + str(datetime.now()))
 
 
 
