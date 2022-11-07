@@ -14,7 +14,9 @@ ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED"
 
 class Validators:
     def __init__(self):
+        print("Querying validators")
         self.validators = session.query(User).all()
+        print(len(self.validators))
 
     def get_validator(self, address):
         return session.query(User).filter_by(address=address).first()
