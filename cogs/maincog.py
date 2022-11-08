@@ -87,8 +87,9 @@ class MainCog(commands.Cog):
     async def bothelp(self, ctx):
         await ctx.send(HELPMSG)
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=5)
     async def check_alarms(self):
+        print(" in check alarm ", datetime.now())
         # check the alarm status here.
         # missing block information will be retrieved with another application via cron
         # it will populate the database, we only check with the provided numbers
@@ -97,12 +98,16 @@ class MainCog(commands.Cog):
         alarm_state = False
         
         channel = self.bot.get_channel(channelid)
-        for validator in self.pool.validators.validators:
+        self.pool.validators.refresh()
+        for validator in self.pool.validators.validators.values():
+            print(validator.last_alarm_count, validator.missing[-1].value)
             state = validator.check_alarm_status()
             if state:
+                print("alarm gonderiyoruz ",validator.moniker)
                 alarm_state = True
                 # raise alarm
                 msg += validator.alarm_message()
+                
         if alarm_state:
             await channel.send(msg)
 

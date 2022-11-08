@@ -15,11 +15,17 @@ ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED"
 class Validators:
     def __init__(self):
         print("Querying validators")
-        self.validators = session.query(User).all()
-        print(len(self.validators))
+        temp = session.query(User).all()
+        self.validators = {}
+        for validator in temp:
+            self.validators[validator.address] = validator
+        
 
     def get_validator(self, address):
-        return session.query(User).filter_by(address=address).first()
+        if address in self.validators.keys():
+            return self.validators[address]
+        return None
+
 
     def add_validator(self, address, moniker, alarm_threshold):
         try:
@@ -32,11 +38,22 @@ class Validators:
             print(f"address {address} is already in db")
 
     def refresh(self):
-        self.validators = session.query(User).all()
+
+        temp = session.query(User).all()
+        self.validators = {}
+        for validator in temp:
+            self.validators[validator.address] = validator
+
 
     def address_list(self):
-        return [validator.address for validator in self.validators]
+        return [validator.address for validator in self.validators.values()]
 
+    def add_numbers(self, numbers):
+        for key, value in numbers.items():
+            if key in self.validators.keys():
+                self.validators[key].add_missing(value)
+        self.refresh()
+        
 
 class Kujira:
     """
@@ -74,6 +91,7 @@ class Kujira:
             def worker(address):
                 url = f"{self.server}/oracle/validators/{address}/miss"
                 output = requests.get(url).text
+                print(output)
                 result = json.loads(output)
                 if "miss_counter" in result.keys():
                     missing = int(result["miss_counter"])
@@ -177,11 +195,16 @@ class KujiraPool:
             self.nodes[node_url] = new_node
 
     def get_missing_block_numbers(self):
+
         numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
         if numbers is None:
             # if there is a problem with the current kujira node, we will select another one
             self.update_selected()
             numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
+        self.validators.add_numbers(numbers)
+        self.validators.refresh()
+        print(self.selected.server, self.selected.active, numbers)
+
         return numbers
 
 

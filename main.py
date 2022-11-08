@@ -1,16 +1,19 @@
 from kujira import Kujira, KujiraPool, session, User, Missing, initialize
-
 from config import *
 
-initialize()
+import time
+
+#initialize()
 pool = KujiraPool()
 
 for node_url in SERVERS:
     pool.add_node(node_url)
 
+pool.update_selected()
 
-# pool.get_missing_block_numbers()
-
+while 1:
+    pool.get_missing_block_numbers()
+    time.sleep(5)
 #pool.update_selected()
 #pool.add_validator("discord1", "kujiravaloper1qvq39e9mjaqner30swwrq6vf59huyxetrqagjy", 10)
 

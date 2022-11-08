@@ -2,3 +2,4 @@ discord.py
 requests
 sqlalchemy
 python-dotenv
+psycopg2-binary
