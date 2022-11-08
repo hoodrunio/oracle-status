@@ -177,10 +177,9 @@ class KujiraPool:
             self.nodes[node_url] = new_node
 
     def get_missing_block_numbers(self):
-        numbers = {}
-        try:
-            numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
-        except:
+        numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
+        if numbers is None:
+            # if there is a problem with the current kujira node, we will select another one
             self.update_selected()
             numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
         return numbers
