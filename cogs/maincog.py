@@ -23,11 +23,6 @@ class MainCog(commands.Cog):
         self.bot = bot
         self.pool = pool
 
-    @commands.command(pass_context=True)
-    @commands.has_role("Mod")
-    async def acommand(self, ctx, argument):
-        await self.bot.say("Stuff")
-
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -45,11 +40,13 @@ class MainCog(commands.Cog):
             await message.channel.send(f'Hi {message.author}')
         if message.content == 'bye':
             await message.channel.send(f'Goodbye {message.author}')
+        if message.content == "help":
+            await message.channel.send(HELPMSG)
+            
         await self.bot.process_commands(message)
 
     @commands.command(pass_context=True)
     async def addr(self, ctx, address, threshold, *args):
-        print("in addr")
         msg = self.pool.add_validator(ctx.author.name, address, threshold)
         validator = self.pool.validators.get_validator(address)
         for user in args:
@@ -74,10 +71,9 @@ class MainCog(commands.Cog):
 
     @commands.command(pass_context=True)
     async def validators(self, ctx):
-        msg = ""
+        msg = "List of validators :\n"
         for vals in self.pool.validators.validators:
-            print("..", vals.address)
-            msg += vals.address + "\n"
+            msg += "  " + vals.address + "\n"
         await ctx.send(msg)
 
     @commands.command(pass_context=True)
@@ -91,15 +87,24 @@ class MainCog(commands.Cog):
     async def bothelp(self, ctx):
         await ctx.send(HELPMSG)
 
-    @tasks.loop(seconds=2)
+    @tasks.loop(seconds=60)
     async def check_alarms(self):
-        print("in loop", datetime.now())
+        # check the alarm status here.
+        # missing block information will be retrieved with another application via cron
+        # it will populate the database, we only check with the provided numbers
+        # is it ok to generate alarm for each validator.
+        msg = "Alarms: \n"
+        alarm_state = False
+        
         channel = self.bot.get_channel(channelid)
-        from random import choice
-        state = choice([True, False])
-        print(state)
-        if state:
-            await channel.send(str(state)+ " testing loop " + str(datetime.now()))
+        for validator in self.pool.validators.validators:
+            state = validator.check_alarm_status()
+            if state:
+                alarm_state = True
+                # raise alarm
+                msg += validator.alarm_message()
+        if alarm_state:
+            await channel.send(msg)
 
 
 

@@ -21,12 +21,14 @@ def initialize():
     """
     Base.metadata.create_all(engine)
 
+
 class Missing(Base):
     __tablename__ = 'missing'
     id = Column(Integer, primary_key=True)
     date = Column(DateTime, server_default=func.now())
     value = Column(Integer)
     userid = Column(Integer, ForeignKey("validators.id"))
+
 
 class Notify(Base):
     __tablename__ = 'notifylist'
@@ -42,17 +44,20 @@ class User(Base):
     moniker = Column(String)
     missing = relationship("Missing")
     last_alarm_count = Column(Integer)
+    last_alarm_date = Column(DateTime)
     alarm_threshold = Column(Integer)
     notify = relationship("Notify")
 
     def __repr__(self):
         return f'User {self.moniker}'
 
+    def alarm_message(self):
+        return f"Moniker :{self.moniker}\nAddress :{self.address}\nNotification List{self.notify_list()}"
+    
     def notify_list(self):
-        msg = ""
+        msg = "\n"
         for user in self.notify:
             msg += " * " + user.discord_name + "\n"
-
         return msg
 
     def add_notify(self, user_to_notify):
@@ -67,14 +72,31 @@ class User(Base):
             session.commit()
         return True
 
-    def check_alarm_status(self, new_value):
-        if self.last_alarm_count is None:
-            self.last_alarm_count = new_value
+    def check_alarm_status(self):
+        # TODO test it with all cases.
+        last = None
+        prev = None
+        if len(self.notify) > 1:
+            last = self.notify[-1]
+            prev = self.notify[-2]
+
+            if self.last_alarm_date == last.date:
+                # we already gave an alarm for this date/value
+                return False
+            else:
+                # new value, check with last alarm count
+                if last.value - self.last_alarm_count >= self.alarm_threshold:
+                    # difference with last alarm > threshold, give an alarm
+                    self.last_alarm_date = last.date
+                    self.last_alarm_count = last.count
+                    return True
+                else:
+                    # there is a new value but below threshold
+                    # do nothing
+                    return False
         else:
-            if (new_value - self.last_alarm_count) > self.alarm_threshold:
-                # Notify via discord
-                # after successful notification, set last alarm count to new value
-                self.last_alarm_count = new_value
+            # not enough values to calculate alarm
+            return False
 
     def add_missing(self, value):
         last_missing = self.missing[-1].value
@@ -84,4 +106,3 @@ class User(Base):
             newrecord = Missing(value=value, userid=self.id)
             session.add(newrecord)
             session.commit()
-            self.check_alarm_status(value)
