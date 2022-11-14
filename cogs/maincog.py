@@ -43,13 +43,13 @@ pool.update_selected()
 
 
 channelid = 1038491075855257612  # test
-channelid = 992186951358746797 # main 
+channelid = 992186951358746797   # main
 
 
 class MainCog(commands.Cog):
-    def __init__(self, bot, pool):
+    def __init__(self, bot, kujirapool):
         self.bot = bot
-        self.pool = pool
+        self.pool = kujirapool
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -81,7 +81,8 @@ class MainCog(commands.Cog):
             state = validator.add_notify(user)
             if state is False:
                 msg += f"\nUser name {user} is already in the list for {validator.moniker}, not adding\n"
-        msg += f"Current list of users to notify for {address}:\n"
+
+        msg += f"Current list of users to notify for moniker {validator.moniker}:\n"
         session.refresh(validator)
         msg += validator.notify_list()
         await ctx.send(msg)
@@ -96,9 +97,10 @@ class MainCog(commands.Cog):
             msg += f"User name {user} is deleted from  list for {validator.moniker}\n"
         else:
             msg += f"User name {user} NOT in the list for {validator.moniker}\n"
-        msg += f"\n\nCurrent list of users to notify for {validator.moniker}:\n"
         session.refresh(validator)
-        msg += validator.notify_list()
+        if len(validator.notify) > 0:
+            msg += f"\n\nCurrent list of users to notify for {validator.moniker}:\n"
+            msg += validator.notify_list()
         await ctx.send(msg)
         
     @commands.command(pass_context=True)

@@ -103,13 +103,13 @@ class KujiraPool:
                     session.add(user)
                     session.commit()
                     user.add_notify(discord_name)
-                    msg = f"Validator alarm for address {address} and moniker {user.moniker} set with threshold {threshold} to user {discord_name} "
+                    msg = f"Validator alarm for moniker {user.moniker} set with threshold {threshold} to user {discord_name} "
                 except:
                     tb.print_exc()
             else:
-                msg = f"Couldn't find validator record for address {address} "
+                msg = f"Couldn't find validator record for moniker {user.moniker} "
         else:
-            msg = f"There is already a record for {address} "
+            msg = f"There is already a record for this address: {address} "
             return msg
         return msg
 

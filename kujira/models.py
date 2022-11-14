@@ -12,7 +12,7 @@ from datetime import datetime
 
 ENGINE='postgresql://kujirabottestuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiratestdb'  # test
 
-ENGINE='postgresql://kujirabotuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiradb' # main
+ENGINE='postgresql://kujirabotuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiradb'  # main
 
 engine = create_engine(ENGINE)
 Session = sessionmaker(bind=engine)
@@ -58,7 +58,7 @@ class User(Base):
         return f'User {self.moniker}'
 
     def alarm_message(self):
-        return f"Moniker :{self.moniker}\nAddress :{self.address}\nAlarm date:{self.missing[-1].date}\nAlarm Value:{self.missing[-1].value}\nNotification List{self.notify_list()}"
+        return f"Moniker :{self.moniker}\nAlarm date:{self.missing[-1].date}\nAlarm Value:{self.missing[-1].value}\nNotification List{self.notify_list()}"
     
     def notify_list(self):
         msg = "\n"
