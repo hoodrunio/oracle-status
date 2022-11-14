@@ -9,7 +9,11 @@ from datetime import datetime
 
 #TODO: when deploying, replace engine with postgresql
 #sqlite is only for local testing
-ENGINE='postgresql://kujirabotuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiradb'
+
+ENGINE='postgresql://kujirabottestuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiratestdb'  # test
+
+ENGINE='postgresql://kujirabotuser:32319ae795b57d2e61b105dfd6f@localhost:5432/kujiradb' # main
+
 engine = create_engine(ENGINE)
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -62,6 +66,14 @@ class User(Base):
             msg += " * " + user.discord_name + "\n"
         return msg
 
+    def delete_notify(self, user_to_notify):
+        for user in self.notify:
+            if user.discord_name == user_to_notify:
+                session.delete(user)
+                session.commit()
+                return True
+        return False
+    
     def add_notify(self, user_to_notify):
         found = False
         for user in self.notify:
@@ -96,47 +108,7 @@ class User(Base):
         else:
             return False
                     
-    
-    """
-    def check_alarm_status(self):
-        print("in check alarm status")
-        # TODO test it with all cases.
-        last = None
-        if len(self.missing) > 1:
-            last = self.missing[-1]
-            if self.last_alarm_date == last.date:
-                print("self.last_alarm_date == last.date is True")
-                # we already gave an alarm for this date/value
-                return False
-            else:
-                if self.last_alarm_count is None:
-                    print("self.last_alarm_count is None:")
-                    # no last alarm count before.
-                    first = self.missing[0]
-                    last = self.missing[-1]
-                    if last.value - first.value > self.alarm_threshold:
-                        
-                        self.last_alarm_date = last.date
-                        self.last_alarm_count = last.value
-                        session.commit()
-                        return True
-                # new value, check with last alarm count
-                if last.value - self.last_alarm_count >= self.alarm_threshold:
-                    # difference with last alarm > threshold, give an alarm
-                    self.last_alarm_date = last.date
-                    self.last_alarm_count = last.value
-                    session.commit()
-                    return True
-                else:
-                    # there is a new value but below threshold
-                    # do nothing
-                    return False
-        else:
-            # not enough values to calculate alarm
-            return False
-    """
     def add_missing(self, value):
-        print("add missing, ", value, datetime.now())
         if len(self.missing) > 0:
             last_missing = self.missing[-1].value
             if value !=last_missing:
@@ -150,4 +122,3 @@ class User(Base):
             session.add(newrecord)
             session.commit()
 
-        print("add missing exit ", self.missing[-1].value, datetime.now())

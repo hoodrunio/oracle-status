@@ -6,13 +6,19 @@ from discord.ext import commands
 import asyncio
 
 
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
+DEPLOY="main" # or DEPLOY="test"
 
-intents = discord.Intents.default()
-intents.members = True
-intents.messages = True
-intents.message_content = True
+TOKEN = ""
+ENGINE= ""
+
+load_dotenv()
+if DEPLOY == "main":
+    TOKEN = os.getenv('DISCORD_TOKEN_MAIN')
+    ENGINE = os.getenv('DISCORD_ENGINE_MAIN')
+    
+elif DEPLOY == "test":
+    TOKEN = os.getenv('DISCORD_TOKEN_TEST')
+    ENGINE = os.getenv('DISCORD_ENGINE_TEST')
 
 
 class Client(commands.Bot):
@@ -23,10 +29,9 @@ class Client(commands.Bot):
             help_command=commands.DefaultHelpCommand(dm_help=True)
         )
 
-    async def setup_hook(self): #overwriting a handler
-        print(f"Logged in as   xx {client.user}")
-        #await client.tree.sync()
 
+    async def setup_hook(self): #overwriting a handler
+        print(f"Logged in as {client.user}")
 
 async def load_extensions():
     await client.load_extension("cogs.maincog")

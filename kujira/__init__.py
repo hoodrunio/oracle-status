@@ -12,49 +12,6 @@ import random
 ENDPOINT = "/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED"
 
 
-class Validators:
-    def __init__(self):
-        print("Querying validators")
-        temp = session.query(User).all()
-        self.validators = {}
-        for validator in temp:
-            self.validators[validator.address] = validator
-        
-
-    def get_validator(self, address):
-        if address in self.validators.keys():
-            return self.validators[address]
-        return None
-
-
-    def add_validator(self, address, moniker, alarm_threshold):
-        try:
-            user = User(address=address,
-                        moniker=moniker,
-                        alarm_threshold=alarm_threshold)
-            session.add(user)
-            session.commit()
-        except sqlalchemy_exceptions.IntegrityError:
-            print(f"address {address} is already in db")
-
-    def refresh(self):
-
-        temp = session.query(User).all()
-        self.validators = {}
-        for validator in temp:
-            self.validators[validator.address] = validator
-
-
-    def address_list(self):
-        return [validator.address for validator in self.validators.values()]
-
-    def add_numbers(self, numbers):
-        for key, value in numbers.items():
-            if key in self.validators.keys():
-                self.validators[key].add_missing(value)
-        self.refresh()
-        
-
 class Kujira:
     """
     Class for Kujira Node
@@ -78,7 +35,6 @@ class Kujira:
         url = f"{self.server}/cosmos/staking/v1beta1/validators/{address}"
         output = requests.get(url).text
         result = json.loads(output)
-
         if "code" in result.keys():
             return False, None
         else:
@@ -87,11 +43,9 @@ class Kujira:
     def get_missing_block_numbers(self, list_of_addresses):
         try:
             temp = {}
-
             def worker(address):
                 url = f"{self.server}/oracle/validators/{address}/miss"
                 output = requests.get(url).text
-                print(output)
                 result = json.loads(output)
                 if "miss_counter" in result.keys():
                     missing = int(result["miss_counter"])
@@ -119,22 +73,43 @@ class KujiraPool:
 
     def __init__(self):
         self.nodes = {}
-        self.validators = Validators()
         self.selected = None
 
+    def validator_addresses(self):
+        temp = []
+        for validator in session.query(User).all():
+            temp.append(validator.address)
+        return temp
+
+    def validator_list(self):
+        temp = []
+        for validator in session.query(User).all():
+            temp.append((validator.moniker, validator.address))
+        return temp
+        
     def add_validator(self, discord_name, address, threshold):
-        temp = self.validators.get_validator(address)
-        print(temp)
+        try:
+            tempval = session.query(User).filter_by(address=address).first()
+        except:
+            tb.print_exc()
         msg = ""
-        if temp is None:
+        if tempval is None:
             state, validator = self.selected.validator(address)
             if state is True:
-                self.validators.add_validator(address, validator.moniker, threshold)
-                msg = f"Validator alarm for address {address} and moniker {validator.moniker} set with threshold {threshold} to user {discord_name}"
+                try:
+                    user = User(address=address,
+                                moniker=validator.moniker,
+                                alarm_threshold=threshold)
+                    session.add(user)
+                    session.commit()
+                    user.add_notify(discord_name)
+                    msg = f"Validator alarm for address {address} and moniker {user.moniker} set with threshold {threshold} to user {discord_name} "
+                except:
+                    tb.print_exc()
             else:
-                msg = f"Couldn't find validator record for address {address}"
+                msg = f"Couldn't find validator record for address {address} "
         else:
-            msg = f"There is already a record for {address}"
+            msg = f"There is already a record for {address} "
             return msg
         return msg
 
@@ -194,17 +169,21 @@ class KujiraPool:
             new_node = Kujira(node_url)
             self.nodes[node_url] = new_node
 
-    def get_missing_block_numbers(self):
-
-        numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
+    def get_missing_block_numbers(self):        
+        vlist = self.validator_addresses()
+        numbers = self.selected.get_missing_block_numbers(vlist)
         if numbers is None:
             # if there is a problem with the current kujira node, we will select another one
             self.update_selected()
-            numbers = self.selected.get_missing_block_numbers(self.validators.address_list())
-        self.validators.add_numbers(numbers)
-        self.validators.refresh()
+            numbers = self.selected.get_missing_block_numbers(vlist)
+
         print(self.selected.server, self.selected.active, numbers)
 
+        for key, value in numbers.items():
+            if key in vlist:
+                validator = session.query(User).filter_by(address=key).first()
+                validator.add_missing(value)
+        session.commit()
         return numbers
 
 
