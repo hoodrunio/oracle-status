@@ -74,67 +74,73 @@ class MainCog(commands.Cog):
 
     @commands.command(pass_context=True)
     async def addr(self, ctx, address, threshold, *args):
-        msg = self.pool.add_validator("<@"+str(ctx.author.id)+">", address, threshold)
-        validator = session.query(Validator).filter_by(address=address).first()
-        for user in args:
-            print("user is ", user)
-            state = validator.add_notify(user)
-            if state is False:
-                msg += f"\nUser name {user} is already in the list for {validator.moniker}, not adding\n"
+        if ctx.channel.id == channelid:
+            msg = self.pool.add_validator("<@"+str(ctx.author.id)+">", address, threshold)
+            validator = session.query(Validator).filter_by(address=address).first()
+            for user in args:
+                print("user is ", user)
+                state = validator.add_notify(user)
+                if state is False:
+                    msg += f"\nUser name {user} is already in the list for {validator.moniker}, not adding\n"
 
-        msg += f"Current list of users to notify for moniker {validator.moniker}:\n"
-        session.refresh(validator)
-        msg += validator.notify_list()
-        await ctx.send(msg)
+            msg += f"Current list of users to notify for moniker {validator.moniker}:\n"
+            session.refresh(validator)
+            msg += validator.notify_list()
+            await ctx.send(msg)
 
     @commands.command(pass_context=True)
     async def removeme(self, ctx, address):
-        validator = session.query(Validator).filter_by(address=address).first()        
-        msg = ""
-        user = "<@"+str(ctx.author.id)+">"
-        state = validator.delete_notify(user)
-        if state:
-            msg += f"User name {user} is deleted from  list for {validator.moniker}\n"
-        else:
-            msg += f"User name {user} NOT in the list for {validator.moniker}\n"
-        session.refresh(validator)
-        if len(validator.notify) > 0:
-            msg += f"\n\nCurrent list of users to notify for {validator.moniker}:\n"
-            msg += validator.notify_list()
-        await ctx.send(msg)
+        if ctx.channel.id == channelid:
+            validator = session.query(Validator).filter_by(address=address).first()        
+            msg = ""
+            user = "<@"+str(ctx.author.id)+">"
+            state = validator.delete_notify(user)
+            if state:
+                msg += f"User name {user} is deleted from  list for {validator.moniker}\n"
+            else:
+                msg += f"User name {user} NOT in the list for {validator.moniker}\n"
+            session.refresh(validator)
+            if len(validator.notify) > 0:
+                msg += f"\n\nCurrent list of users to notify for {validator.moniker}:\n"
+                msg += validator.notify_list()
+            await ctx.send(msg)
         
     @commands.command(pass_context=True)
     async def adduser(self, ctx, address, *args):
-        validator = session.query(Validator).filter_by(address=address).first()
-        msg = ""
-        for user in args:
-            state = validator.add_notify(user)
-            if state is False:
-                msg += f"User name {user} is already in the list for {validator.moniker}, not adding\n"
-        msg += f"Current list of users to notify for {validator.moniker}:\n"
-        session.refresh(validator)
-        msg += validator.notify_list()
-        await ctx.send(msg)
+        if ctx.channel.id == channelid:
+            validator = session.query(Validator).filter_by(address=address).first()
+            msg = ""
+            for user in args:
+                state = validator.add_notify(user)
+                if state is False:
+                    msg += f"User name {user} is already in the list for {validator.moniker}, not adding\n"
+            msg += f"Current list of users to notify for {validator.moniker}:\n"
+            session.refresh(validator)
+            msg += validator.notify_list()
+            await ctx.send(msg)
 
     @commands.command(pass_context=True)
     async def validators(self, ctx):
-        msg = "List of validators :\n```"
-        for moniker, address in self.pool.validator_list():
-            msg += "  " + address + "  " + moniker + "\n"
-        msg += "```"
-        await ctx.send(msg)
+        if ctx.channel.id == channelid:
+            msg = "List of validators :\n```"
+            for moniker, address in self.pool.validator_list():
+                msg += "  " + address + "  " + moniker + "\n"
+            msg += "```"
+            await ctx.send(msg)
 
     @commands.command(pass_context=True)
     async def detail(self, ctx, address):
-        validator = session.query(Validator).filter_by(address=address).first()
-        msg = f"**Moniker :** {validator.moniker}\n**Address :** {validator.address}\n**Notification list:** \n"
-        msg += validator.notify_list()
-        await ctx.send(msg)
+        if ctx.channel.id == channelid:
+            validator = session.query(Validator).filter_by(address=address).first()
+            msg = f"**Moniker :** {validator.moniker}\n**Address :** {validator.address}\n**Notification list:** \n"
+            msg += validator.notify_list()
+            await ctx.send(msg)
 
     @commands.command(pass_context=True)
     async def bothelp(self, ctx):
-        await ctx.send(HELPMSG, delete_after=60)
-        
+        if ctx.channel.id == channelid:
+            await ctx.send(HELPMSG, delete_after=60)
+
     @tasks.loop(seconds=5)
     async def check_alarms(self):
         msg = "Alarms: \n"
