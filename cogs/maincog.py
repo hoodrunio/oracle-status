@@ -43,7 +43,7 @@ pool.update_selected()
 
 
 channelid = 1038491075855257612  # test
-channelid = 992186951358746797   # main
+channelid = 1039843637556674620   # main
 
 
 class MainCog(commands.Cog):
