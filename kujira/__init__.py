@@ -176,9 +176,6 @@ class KujiraPool:
             # if there is a problem with the current kujira node, we will select another one
             self.update_selected()
             numbers = self.selected.get_missing_block_numbers(vlist)
-
-        print(self.selected.server, self.selected.active, numbers)
-
         for key, value in numbers.items():
             if key in vlist:
                 validator = session.query(User).filter_by(address=key).first()
