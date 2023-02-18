@@ -93,12 +93,9 @@ class User(Base):
         if len(self.missing) > 0:
             last = self.missing[-1]
             if self.last_alarm_date is not None:
-                #if counter resets, raise alarm
-                if 
-                    
                 if (
                         (last.value - self.last_alarm_count >= self.alarm_threshold) or
-                        (last.value < self.last_alarm_count)  # if the count resets, raise alarm also.
+                        (last.value < self.last_alarm_count)  # if counter resets, raise alarm
                 ):
                     self.last_alarm_date = last.date
                     self.last_alarm_count = last.value
